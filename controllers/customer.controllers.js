@@ -1,4 +1,4 @@
-const { joiErrorFormat } = require('../utils');
+const { joiErrorFormat, isObjectIDValid } = require('../utils');
 const { Customer, validateCustomer } = require('../models/customer');
 
 /**
@@ -44,8 +44,22 @@ async function __post(req, res) {
  * @param {*} req 
  * @param {*} res 
  */
-function __get(req, res) {
-    res.send("hello 124");
+async function __get(req, res) {
+    const customerId = req.params.id;
+    let customer = {};
+
+    if (customerId) {
+
+        if (!isObjectIDValid(customerId)) return res.status(400).send("Invalid customer ID provided.");
+
+        customer = await Customer.findById(customerId);
+
+        if (!customer) return res.status(400).send("Customer with the given ID not found.");
+    } else {
+        customer = await Customer.find();
+    }
+
+    res.send(customer);
 }
 
 /**
@@ -53,8 +67,27 @@ function __get(req, res) {
  * @param {*} req 
  * @param {*} res 
  */
-function __put(req, res) {
+async function __put(req, res) {
+    const customerId = req.params.id;
+    const reqCustomer = req.body;
+    const { error } = validateCustomer(reqCustomer);
 
+    if (!isObjectIDValid(customerId)) return res.status(400).send("Invalid customer ID provided.");
+
+    if (error) return res.status(400).send(joiErrorFormat(error.details));
+
+    const customer = await Customer.findByIdAndUpdate(customerId, {
+        $set: {
+            firstname: reqCustomer.firstname,
+            lastname: reqCustomer.lastname,
+            gender: reqCustomer.gender,
+            dob: reqCustomer.dob
+        }
+     }, { new: true });
+
+     if (!customer) res.status(400).send("Customer with the given ID not found.");
+
+     res.send(customer);
 }
 
 /**
@@ -62,8 +95,16 @@ function __put(req, res) {
  * @param {*} req 
  * @param {*} res 
  */
-function __delete(req, res) {
+async function __delete(req, res) {
+    const customerId = req.params.id;
 
+    if (!isObjectIDValid(customerId)) return res.status(400).send("Invalid customer ID provided.");
+
+    const customer = await Customer.findByIdAndRemove(customerId);
+
+    if (!customer) return res.status(400).send("Customer with the given Id not found.");
+
+    res.send(customer);
 }
 
 module.exports = {

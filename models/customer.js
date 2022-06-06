@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const customerSchema = new Schema({
-    entityId : { type: Number, unique: true },
     firstname : { type: String, min: 3, max: 50, required: true },
     lastname : { type: String, min: 3, max: 50, required: true },
     gender : { type: Number,  enum: [1, 2, 3], required: true},
@@ -19,6 +18,14 @@ const customerSchema = new Schema({
                     return v.match(/[.a-zA-Z0-9]+@[a-zA-Z0-9]+.[a-zA-Z]+/i);
                 },
                 message: "email must be valid."
+            },
+            {
+                validator: function(v) {
+                    return Customer.findOne({ email: v })
+                        .then(customer => Promise.resolve(customer == null))
+                        .catch(error => Promise.reject(false));
+                },
+                message: "email must be unique"
             }
         ]
     },
