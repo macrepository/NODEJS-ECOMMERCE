@@ -1,14 +1,14 @@
 const passwordComplexity = require('joi-password-complexity');
 const Joi = require('joi');
+const { Address } = require('./address');
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
-const customerSchema = new Schema({
-    firstname : { type: String, min: 3, max: 50, required: true },
-    lastname : { type: String, min: 3, max: 50, required: true },
-    gender : { type: Number,  enum: [1, 2, 3], required: true},
-    dob : { type: Date, max: Date.now, required: true },
-    email : {
+const customerSchema = new mongoose.Schema({
+    firstname: { type: String, min: 3, maxlength: 50, required: true },
+    lastname: { type: String, min: 3, maxlength: 50, required: true },
+    gender: { type: Number,  enum: [1, 2, 3] },
+    dob: { type: Date, max: Date.now, required: true },
+    email: {
         type: String, 
         unique: true, 
         required: true,
@@ -29,10 +29,19 @@ const customerSchema = new Schema({
             }
         ]
     },
-    password : { type: String, min: 6, max: 255, required: true}
+    password: { type: String, min: 6, maxlength: 255, required: true},
+    addresses: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'customer_address'
+    }]
 }, {
     timestamps: true
   });
+
+customerSchema.methods.getAddress = function() {
+    return Address
+        .find({ _id: {$in: this.addresses} });
+}
 
 const Customer = mongoose.model('customer', customerSchema);
 
@@ -60,7 +69,8 @@ function validateCustomer(customer)
         dob: Joi.date().less('now').required(),
         email: Joi.string().max(50).email({ allowFullyQualified: true }).required(),
         password: passwordComplexity(complexityOptions).required(),
-        repeatPassword: Joi.ref('password')
+        repeatPassword: Joi.ref('password'),
+        addresses: Joi.array()
     });
 
     return customerSchema.validate(customer, { abortEarly: false });

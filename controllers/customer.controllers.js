@@ -19,7 +19,8 @@ async function __post(req, res) {
         dob: reqCustomer.dob,
         email: reqCustomer.email,
         password: reqCustomer.password,
-        repeatPassword: reqCustomer.repeatPassword
+        repeatPassword: reqCustomer.repeatPassword,
+        addresses: reqCustomer.addresses
     }
 
     try {
@@ -52,13 +53,17 @@ async function __get(req, res) {
 
         if (!isObjectIDValid(customerId)) return res.status(400).send("Invalid customer ID provided.");
 
-        customer = await Customer.findById(customerId);
-
+        customer = await Customer
+            .findById(customerId)
+            .populate('addresses');
+       
         if (!customer) return res.status(400).send("Customer with the given ID not found.");
     } else {
-        customer = await Customer.find();
+        customer = await Customer
+            .find()
+            .populate('addresses');
     }
-
+    
     res.send(customer);
 }
 
@@ -72,9 +77,9 @@ async function __put(req, res) {
     const reqCustomer = req.body;
     const { error } = validateCustomer(reqCustomer);
 
-    if (!isObjectIDValid(customerId)) return res.status(400).send("Invalid customer ID provided.");
-
     if (error) return res.status(400).send(joiErrorFormat(error.details));
+
+    if (!isObjectIDValid(customerId)) return res.status(400).send("Invalid customer ID provided.");
 
     const customer = await Customer.findByIdAndUpdate(customerId, {
         $set: {
