@@ -6,7 +6,7 @@ module.exports =  function () {
        
     });
 
-    process.on('unhandledRejecttion', (ex) => {
+    process.on('unhandledRejection', (ex) => {
         logger.critical(ex.message);
     });
 }
