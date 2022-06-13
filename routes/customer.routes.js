@@ -1,7 +1,10 @@
-const {__post, __get, __put, __delete } = require('../controllers/customer.controllers');
+const {__post, __get, __put, __delete, __login, __me } = require('../controllers/customer.controllers');
+const auth = require('../middlewares/auth');
 const express = require('express');
 const router = express.Router();
 
+router.post('/login', __login);
+router.get('/me', auth, __me);
 router.post('/', __post);
 router.get('/', __get);
 router.get('/:id', __get);

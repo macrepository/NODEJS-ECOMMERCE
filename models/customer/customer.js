@@ -1,3 +1,5 @@
+const config = require('config');
+const jwt = require('jsonwebtoken');
 const passwordComplexity = require('joi-password-complexity');
 const Joi = require('joi');
 const { Address } = require('./address');
@@ -41,6 +43,17 @@ const customerSchema = new mongoose.Schema({
 customerSchema.methods.getAddress = function() {
     return Address
         .find({ _id: {$in: this.addresses} });
+}
+
+customerSchema.methods.generateJwtToken = function() {
+    const token = jwt.sign({
+        _id: this.id,
+        firstname: this.firstname,
+        lastname: this.lastname,
+        email: this.email
+    }, config.get('jwtPrivateKey'));
+
+    return token;
 }
 
 const Customer = mongoose.model('customer', customerSchema);

@@ -1,4 +1,6 @@
 const { joiErrorFormat, isObjectIDValid } = require('../utils');
+const _ = require('lodash');
+const bcrypt = require('bcrypt');
 const { Customer, validateCustomer } = require('../models/customer');
 
 /**
@@ -12,22 +14,20 @@ async function __post(req, res) {
     
     if (error) return res.status(400).send(joiErrorFormat(error.details));
 
-    const customerObject = {
-        firstname: reqCustomer.firstname,
-        lastname: reqCustomer.lastname,
-        gender: reqCustomer.gender,
-        dob: reqCustomer.dob,
-        email: reqCustomer.email,
-        password: reqCustomer.password,
-        repeatPassword: reqCustomer.repeatPassword,
-        addresses: reqCustomer.addresses
-    }
+    let customerObject = _.pick(reqCustomer, ['firstname', 'lastname', 'gender', 'dob', 'email', 'addresses']);
+    
+    const salt = await bcrypt.genSalt(10);
+    customerObject.password = await bcrypt.hash(reqCustomer.password, salt);
 
     try {
         const customerModel = new Customer(customerObject);
         const customer = await customerModel.save();
 
-        res.send(customer);
+        const token = customer.generateJwtToken();
+
+        res
+            .header('x-auth-token', token)
+            .send(_.pick(customer, ['_id', 'firstname', 'lastname', 'email']));
     } catch (error) {
         let errorMessage = '';
         let { errors } = error;
@@ -112,9 +112,35 @@ async function __delete(req, res) {
     res.send(customer);
 }
 
+async function __login(req, res) {
+    const reqCust = req.body;
+    // const { error } = validateAuth(reqCust);
+    // if (error) return res.status(400).send(error.message);
+
+    const customer = await Customer.findOne({ email: reqCust.email });
+    
+    if (!customer) return res.status(400).send("Invalid username and password.");
+
+    const validPassword = await bcrypt.compare(reqCust.password, customer.password);
+    
+    if (!validPassword) return res.status(400).send("Invalid customer and password");
+
+    const token = customer.generateJwtToken();
+
+    res
+        .header('x-auth-token', token)
+        .send(_.pick(customer, ['_id', 'firstname', 'lastname', 'email']));
+}
+
+async function __me(req, res) {
+    res.send("Hello ");
+}
+
 module.exports = {
     __post,
     __get,
     __put,
-    __delete
+    __delete,
+    __login,
+    __me
 }
